@@ -19,6 +19,8 @@ A Machine Learning Model to Predict Self Movement
 ## Executive Summary
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible quantify self movement to improve health by finding patterns to predict successfully whether barbell lifts are done correctly.
 
+The data was partitioned into an 60/40 (training/testing) cross-validation set. The training data was used to train a random forest, which produced an accuracy of 99% over the test data.
+
 ## Data Preparation
 ```{r data,  echo=FALSE, results='hide'}
 
@@ -36,32 +38,33 @@ The process to prepare the data is:
 * Remove missing data using caret nearZeroVar()
 * Remove 'X' that is a sequence for each data row that might cause bias.
 * At this point we have 52 predictors plus the outcome variable.
-Now we are ready to partition the data by 60/40 ratio to build our model.
-```{r partition, echo=FALSE}
+```{r tidy}
+colnames(rawTraining)
+```
+Now we are ready to partition the data by 60/40 ratio. This means 11776 samples to build our model, and 7846 testing data to validate it. 
+```{r partition, echo=FALSE, results='hide'}
 partData <- createDataPartition(y=rawTraining$classe,p=0.6,list=F)
 training <- rawTraining[partData,]
 testing <- rawTraining[-partData,]
-print('training')
 dim(training)
-print('testing')
 dim(testing)
-colnames(rawTraining)
 ```
 ---
 ## Feature and Model Selection
 After evaluate several models using caret package in R like and evaluate the accuracy the results determine the random forest got the best accuracy (rf, 99%) compared with other models like k-nearest neighborhood (knn, 73%), bootstrapped random forest (rpart, 87%).
 
-The Random Forest method takes longer but 
+The Random Forest method takes longer but shows a well performance with an accuracy >99%. The in-sample error was very low with an OOB estimate of 0.85% and an accuracy of 99%.
 
 ```{r model, echo=FALSE, cache=TRUE}
-tc = trainControl(method="cv",number=4)
+tc = trainControl(method="cv",number=10)
 fit <- train(classe ~ .,data=training, method="rf",trControl=tc)
 fit$finalModel
 ```
 ## Cross Validation
+The out-sample error is keeping the good performance with an accuracy of 99%.
 ```{r predict, echo=FALSE}
 predictResult <- predict(fit,testing)
-qplot(predictResult,classe,data=testing,main="Cross Validation",xlab="Predict",ylab="Actual")
+#qplot(predictResult,classe,data=testing,main="Cross Validation",xlab="Predict",ylab="Actual")
 confusionMatrix(predictResult, testing$classe)
 ```
 ## Variable Importance
