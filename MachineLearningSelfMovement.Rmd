@@ -6,6 +6,13 @@ date      : "Friday, August 22, 2014"
 output    : html_document
 ---
 
+```{r lib,  echo=FALSE, results='hide'}
+library(caret)
+library(lattice)
+library(ggplot2)
+library(randomForest)
+```
+
 A Machine Learning Model to Predict Self Movement 
 =================================================
 
@@ -13,8 +20,73 @@ A Machine Learning Model to Predict Self Movement
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible quantify self movement to improve health by finding patterns to predict successfully whether barbell lifts are done correctly.
 
 ## Data Preparation
-```{r,  echo=FALSE, results='hide'}
-library(caret)
+```{r data,  echo=FALSE, results='hide'}
+
 rawTraining <- read.csv('pml-training.csv') 
 rawValidation <- read.csv('pml-testing.csv')
+
+nzvData <- nearZeroVar(rawValidation)
+rawTraining <- rawTraining[,-nzvData]
+rawTraining <- rawTraining[,-(1:6)]
+dim(rawTraining)
+
 ```
+The process to prepare the data is:
+* Load data into two raw datasets
+* Remove missing data using caret nearZeroVar()
+* Remove 'X' that is a sequence for each data row that might cause bias.
+* At this point we have 52 predictors plus the outcome variable.
+Now we are ready to partition the data by 60/40 ratio to build our model.
+```{r partition, echo=FALSE}
+partData <- createDataPartition(y=rawTraining$classe,p=0.6,list=F)
+training <- rawTraining[partData,]
+testing <- rawTraining[-partData,]
+print('training')
+dim(training)
+print('testing')
+dim(testing)
+colnames(rawTraining)
+```
+---
+## Feature and Model Selection
+After evaluate several models using caret package in R like and evaluate the accuracy the results determine the random forest got the best accuracy (rf, 99%) compared with other models like k-nearest neighborhood (knn, 73%), bootstrapped random forest (rpart, 87%).
+
+The Random Forest method takes longer but 
+
+```{r model, echo=FALSE, cache=TRUE}
+tc = trainControl(method="cv",number=4)
+fit <- train(classe ~ .,data=training, method="rf",trControl=tc)
+fit$finalModel
+```
+## Cross Validation
+```{r predict, echo=FALSE}
+predictResult <- predict(fit,testing)
+qplot(predictResult,classe,data=testing,main="Cross Validation",xlab="Predict",ylab="Actual")
+confusionMatrix(predictResult, testing$classe)
+```
+## Variable Importance
+This section use varImp() to determine what variables are important for the model.
+```{r varImp, echo=FALSE}
+varImp(fit)
+```
+## Prediction Assigment
+This is the prediction and export of the Prediction Assignment that is submitted in the Coursera.
+```{r assigment}
+predictAssigment <- predict(fit, newdata=rawValidation)
+qplot(rawValidation$problem_id,predictAssigment, colour=predictAssigment,xlab="Problem id",ylab="Predict classe", height="100")
+
+#Convert data frame to character vector
+answers <- data.frame(lapply(predictAssigment, as.character), stringsAsFactors=FALSE)
+
+#Function to output validation set answers in submittable format
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(answers)
+```
+
