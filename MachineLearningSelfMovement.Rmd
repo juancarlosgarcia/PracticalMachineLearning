@@ -38,7 +38,7 @@ The process to prepare the data is:
 * Remove missing data using caret nearZeroVar()
 * Remove 'X' that is a sequence for each data row that might cause bias.
 * At this point we have 52 predictors plus the outcome variable.
-```{r tidy}
+```{r tidy, echo=FALSE}
 colnames(rawTraining)
 ```
 Now we are ready to partition the data by 60/40 ratio. This means 11776 samples to build our model, and 7846 testing data to validate it. 
@@ -55,7 +55,7 @@ After evaluate several models using caret package in R like and evaluate the acc
 
 The Random Forest method takes longer but shows a well performance with an accuracy >99%. The in-sample error was very low with an OOB estimate of 0.85% and an accuracy of 99%.
 
-```{r model, echo=FALSE, cache=TRUE}
+```{r model, cache=TRUE}
 tc = trainControl(method="cv",number=10)
 fit <- train(classe ~ .,data=training, method="rf",trControl=tc)
 fit$finalModel
